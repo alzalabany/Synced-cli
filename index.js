@@ -139,7 +139,7 @@ watcher
     ready = true;
   })
   .on('all', function(event, p) {
-    if (!ready) return log(event);
+    if (!ready) return;
     console.log('watcher was triggered because', event, p);
     let url = DIR==='.' ? p : path.normalize( p.replace(DIR, '') );
     let md5 = '';
@@ -152,19 +152,26 @@ watcher
     }
   });
 
+function createServer() {
+  const server = jot.createServer({port: serverPort});
+
+  server.on('listening', ()=>log('started listening @ port '+serverPort))
+  .on('connection', newConnectionHandler)
+  .on('error', (e)=>(e.code === 'EADDRINUSE' && server.listen(++serverPort)))
+  .listen(serverPort);
+}
+
 if (!args.host) {
   console.log('creating server');
-  jot.createServer({port: serverPort})
-  .on('listening', ()=>log('started listening @ port '+serverPort))
-  .on('connection', newConnectionHandler)
-  // .on('error', (e)=>(e.code === 'EADDRINUSE' && server.listen(++serverPort)))
-  .listen(serverPort);
+  createServer();
 } else {
   console.log('connecting to server @'+args.host+':'+serverPort);
-  clients.push(jot.connect({port: serverPort, host: args.host})
-  // .on('error', log)
-  .on('data', function(data) {
-    console.log(`[${serverPort}]message from server:`, String(data).substr(0, 100));
-    if (data.event && data.path) executeOrder(data);
-  }));
+  const socket = jot.connect({port: serverPort, host: args.host}, function() {
+    clients.push(socket);
+    socket.on('close', process.exit);
+    socket.on('data', function(data) {
+      console.log(`[${serverPort}]message from server:`, String(data).substr(0, 100));
+      if (data.event && data.path) executeOrder(data);
+    });
+  }).on('error', process.exit);
 }
