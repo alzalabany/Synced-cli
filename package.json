@@ -1,6 +1,6 @@
 {
   "name": "sync-my-folder",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Sync current folder accross multiple machines, so that you can work with your friend :) !",
   "main": "index.js",
   "scripts": {
