@@ -1,0 +1,35 @@
+{
+  "name": "syncer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/alzalabany/syncer.git"
+  },
+  "keywords": [
+    "sync",
+    "folder",
+    "nodejs",
+    "sync"
+  ],
+  "author": "Momen Zalabany",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://gitlab.com/alzalabany/syncer/issues"
+  },
+  "homepage": "https://gitlab.com/alzalabany/syncer#README",
+  "dependencies": {
+    "chokidar": "^1.7.0",
+    "crypto": "^1.0.1",
+    "json-over-tcp": "^0.3.2",
+    "md5-file": "^3.2.2"
+  },
+  "devDependencies": {
+    "eslint": "^4.4.1",
+    "eslint-config-google": "^0.9.1"
+  }
+}
