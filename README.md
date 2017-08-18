@@ -7,7 +7,7 @@ sync current folder with friends to work together and get live updates
 ## Getting Started
 
 ```
-> npm install -g sync-my-folder
+> npm install -g syncer-cli
 ```
 Thats it :) !. now you can use it from any folder in your computer
 

@@ -104,6 +104,8 @@ function executeOrder(data) {
             fs.writeFileSync(url, file);
             return log('updated');
           }
+          log('will not update cause file is too short!');
+          break;
         default:
           log('unkown event on an unkown file !'+event, file);
           break;

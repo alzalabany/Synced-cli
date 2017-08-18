@@ -1,10 +1,10 @@
 {
-  "name": "sync-my-folder",
-  "version": "0.0.2",
+  "name": "syncer-cli",
+  "version": "0.0.1",
   "description": "Sync current folder accross multiple machines, so that you can work with your friend :) !",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "./index.js"
   },
   "repository": {
     "type": "git",
@@ -27,12 +27,7 @@
   "homepage": "https://gitlab.com/alzalabany/syncer#README",
   "dependencies": {
     "chokidar": "^1.7.0",
-    "crypto": "^1.0.1",
     "json-over-tcp": "^0.3.2",
     "md5-file": "^3.2.2"
-  },
-  "devDependencies": {
-    "eslint": "^4.4.1",
-    "eslint-config-google": "^0.9.1"
   }
 }
