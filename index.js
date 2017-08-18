@@ -221,9 +221,14 @@ process.stdin.on('data',function(order){
   const exec = order.replace(/\s$/,'');
   switch (exec) {
     case 'show':
-      log(servers.map(s=>s.address()));
-      log(servers.map(s=>s.listening))
+      log('servers:', servers.filter(c=>c.address).map(s=>s.address()));
+      log('clients:', clients.filter(c=>c.address).map(s=>s.address()));
       break;
+    case 'disconnect':
+      log('stopping '+clients.length+' clients');
+      clients.filter(c=>Boolean(c && c.close)).map(client=>{
+        client.close();
+      });
     case 'stop':
       log('stopping '+servers.length+' servers');
       servers.map(server=>{
