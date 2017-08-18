@@ -10,7 +10,7 @@ const md5File = require('md5-file');
 const args = require('./args.js').default;
 
 const log = console.log.bind(console);
-let serverPort = 5050; // default port
+let serverPort = args.port || 5050; // default port
 let ready = false; // used by server to wait for file watcher to start
 const clients = []; // sockets to propagate change to.
 
@@ -155,24 +155,18 @@ watcher
     }
   });
 
-
-if (args.port) {
-  serverPort = args.port;
-}
-const {host} = args;
-
-const server = host ?
-                jot.connect({port: serverPort, host}) :
-                jot.createServer({port: serverPort});
-server.on('listening', ()=>log('started listening @ port '+serverPort));
-server.on('connection', newConnectionHandler);
-server.on('error', handleError);
-if (server.listen) {
+if (args.host) {
+  const server = jot.createServer({port: serverPort});
+  server.on('listening', ()=>log('started listening @ port '+serverPort));
+  server.on('connection', newConnectionHandler);
+  server.on('error', handleError);
   server.listen(serverPort);
 } else {
+  const server = jot.connect({port: serverPort, args.host});
+  server.on('error', handleError);
   clients.push(server);
   server.on('data', function(data) {
     console.log(`[${serverPort}]message from server:`, String(data).substr(0, 100));
-    executeOrder(data);
+    if(data.event && data.path) executeOrder(data);
   });
 }
