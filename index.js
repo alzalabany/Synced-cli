@@ -5,15 +5,16 @@ const path = require('path');
 const chokidar = require('chokidar');
 const jot = require('json-over-tcp');
 const md5File = require('md5-file');
-
+exports.default = {};
 // Will read argumments passed
 // eg: node ./index.js host=localhost port=2020 dir=../src
 const args = require('./args.js').default;
 
 const log = console.log.bind(console);
-let serverPort = args.port || 5050; // default port
+args.port = args.port || 5050; // default port
 let ready = false; // used by server to wait for file watcher to start
 const clients = []; // sockets to propagate change to.
+const servers = []; // sockets to propagate change to.
 let lastMd5=null;
 // you must have a .gitignore file or this will fail...
 // i leave it to enforce adding node_modules to .gitignore :D !!
@@ -48,10 +49,11 @@ const watcher = chokidar.watch(DIR, {
     atomic: true,
 });
 
-
 console.log('------Watching---------');
 console.log(`on ${DIR}`);
 console.log(`ignoring ${ignored}`);
+process.stdin.resume();
+process.stdin.setEncoding('utf8');
 
 /**
  * This will take an order object, and execute
@@ -122,16 +124,20 @@ function executeOrder(data) {
  */
 function newConnectionHandler(socket) {
   const idx = clients.push(socket);
-  console.log('new connection id#'+idx);
-  socket.on('close', function(data) {
+  console.log('new connection id#'+idx, socket.address());
+  socket.on('close', function() {
+    log('socket @'+idx+' closed...');
     clients.splice(idx-1, 1);
+    if(clients.length===0){
+      log('shutting down..');
+      process.exit();
+    }
   });
   socket.on('data', function(data) {
-    console.log(`[${serverPort}]message from client:`, data);
-    executeOrder(data);
+    console.log(`[${args.port}][@${idx}]:`, String(data).substr(0, 100));
+    if (data.event && data.path) executeOrder(data);
   });
 }
-
 
 /**
  * propagate changes to all connected clients/servers.
@@ -148,6 +154,7 @@ function broadcast(event, md5, path, file) {
   log(`###broadcasting to ${clients.length} clients### checksum:${md5}`);
   clients.map((socket)=>socket.write({event, md5, path, file}));
 }
+
 watcher
   .on('ready', function() {
     log('Initial scan complete. Ready for changes.');
@@ -156,6 +163,7 @@ watcher
   .on('all', function(event, p) {
     if (!ready) return;
     console.log('watcher was triggered because', event, p);
+    // @@todo this is a BUG !! but it works for now.. we dont support wierd relative --dir option anyway..
     let url = DIR==='.' ? p : path.normalize( p.replace(DIR, '') );
     let md5 = '';
     try {
@@ -168,25 +176,74 @@ watcher
   });
 
 function createServer() {
-  const server = jot.createServer({port: serverPort});
-
-  server.on('listening', ()=>log('started listening @ port '+serverPort))
+  const server = jot.createServer({port: args.port});
+  servers.push(server);
+  server.on('listening', ()=>log('started listening @ port '+args.port))
   .on('connection', newConnectionHandler)
-  .on('error', (e)=>(e.code === 'EADDRINUSE' && server.listen(++serverPort)))
-  .listen(serverPort);
+  .on('error', (e)=>(e.code === 'EADDRINUSE' && server.listen(++args.port)))
+  .listen(args.port);
 }
 
-if (!args.host) {
-  console.log('creating server');
-  createServer();
-} else {
-  console.log(`connecting to server @${args.host}:${serverPort}`);
-  const socket = jot.connect({port: serverPort, host: args.host}, function() {
-    clients.push(socket);
-    socket.on('close', process.exit);
-    socket.on('data', function(data) {
-      console.log(`[${serverPort}]message from server:`, String(data).substr(0, 100));
-      if (data.event && data.path) executeOrder(data);
-    });
-  }).on('error', process.exit);
+function connectToHost(host){
+  const socket = jot.connect({port: args.port, host},function(){
+    newConnectionHandler(socket);
+  });
+
 }
+
+function start(){
+  if (!args.host) {
+    console.log('creating server');
+    createServer();
+  } else {
+    console.log(`connecting to server @${args.host}:${args.port}`);
+    connectToHost(args.host);
+  }
+}
+
+
+const defaults = {
+  start,
+  createServer,
+  connectToHost,
+  broadcast,
+  newConnectionHandler,
+  executeOrder,
+  DIR,
+  args,
+  ignored,
+  watcher
+}
+
+setTimeout(start,500);
+
+process.stdin.on('data',function(order){
+  const exec = order.replace(/\s$/,'');
+  switch (exec) {
+    case 'show':
+      log(servers.map(s=>s.address()));
+      log(servers.map(s=>s.listening))
+      break;
+    case 'stop':
+      log('stopping '+servers.length+' servers');
+      servers.map(server=>{
+               server.close();
+             });
+      break;
+    case 'start':
+      start();
+      break;
+    default:
+      const parts = exec.split('=');
+      if(parts.length===2){
+        args[parts[0]] = parts[1];
+        log(parts[0]+' was defined, new Settings:-');
+        log(args);
+      }
+      if(exports.default[exec])typeof exports.default[exec] === 'function' ? exports.default[exec]() : log(exports.default[exec]);
+      break;
+  }
+});
+
+
+exports.default = defaults;
