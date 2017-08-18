@@ -111,7 +111,13 @@ function executeOrder(data) {
   }
 }
 
-// Triggered whenever something connects to the server
+/**
+ * triggered when ever a client connects to the server
+ *
+ * will add him, and remove him from clients. and on data will save his work too.
+ *
+ * @param {Socket} socket
+ */
 function newConnectionHandler(socket) {
   const idx = clients.push(socket);
   console.log('new connection id#'+idx);
@@ -124,6 +130,7 @@ function newConnectionHandler(socket) {
   });
 }
 
+
 /**
  * propagate changes to all connected clients/servers.
  *
@@ -131,6 +138,8 @@ function newConnectionHandler(socket) {
  * @param {string} md5 md5 of file
  * @param {string} path path relative to server
  * @param {string} file file content
+ *
+ * @return {void};
  */
 function broadcast(event, md5, path, file) {
   if (md5===lastMd5) return log('skipping trying to recircule update for '+md5);
@@ -169,7 +178,7 @@ if (!args.host) {
   console.log('creating server');
   createServer();
 } else {
-  console.log('connecting to server @'+args.host+':'+serverPort);
+  console.log(`connecting to server @${args.host}:${serverPort}`);
   const socket = jot.connect({port: serverPort, host: args.host}, function() {
     clients.push(socket);
     socket.on('close', process.exit);
