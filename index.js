@@ -220,7 +220,7 @@ setTimeout(start,500);
 process.stdin.on('data',function(order){
   const exec = order.replace(/\s$/,'');
   switch (exec) {
-    case 'show':
+    case 'info':
       log('servers:', servers.filter(c=>c.address).map(s=>s.address()));
       log('clients:', clients.filter(c=>c.address).map(s=>s.address()));
       break;
