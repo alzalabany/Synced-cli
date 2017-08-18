@@ -17,7 +17,10 @@
     "sync"
   ],
   "author": "Momen Zalabany",
-  "license": "ISC",
+  "license": "Apache-2.0",
+  "bin": {
+    "syncer": "./index.js"
+  },
   "bugs": {
     "url": "https://gitlab.com/alzalabany/syncer/issues"
   },

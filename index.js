@@ -1,4 +1,5 @@
-'strict mode';
+#!/usr/bin/env node
+
 const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
@@ -16,7 +17,9 @@ const clients = []; // sockets to propagate change to.
 
 // you must have a .gitignore file or this will fail...
 // i leave it to enforce adding node_modules to .gitignore :D !!
-const ignored = String(fs.readFileSync('./.gitignore', 'utf8'))
+const ignoreFile = path.normalize('./.gitignore');
+if (!fs.existsSync(ignoreFile)) fs.writeFileSync(ignoreFile, 'node_modules');
+const ignored = String(fs.readFileSync(ignoreFile, 'utf8'))
                   .split(/\r?\n/)
                   .concat([/[\/\\]\./]);
 
@@ -119,13 +122,15 @@ function newConnectionHandler(socket) {
 }
 
 /**
- *  i will broadcast changes to eveery socket in clients array
- * @param {*string} event
- * @param {*string} path
- * @param {*string} file
+ * propagate changes to all connected clients/servers.
+ *
+ * @param {string} event chokidar event
+ * @param {string} md5 md5 of file
+ * @param {string} path path relative to server
+ * @param {string} file file content
  */
 function broadcast(event, md5, path, file) {
-  log('###'+(args.host?'client broadcasting':'server')+'###'+clients.length+'@@'+md5);
+  log(`###broadcasting to ${clients.length} clients### checksum:${md5}`);
   clients.map((socket)=>socket.write({event, md5, path, file}));
 }
 watcher
@@ -148,17 +153,18 @@ watcher
   });
 
 if (!args.host) {
-  const server = jot.createServer({port: serverPort});
-  server.on('listening', ()=>log('started listening @ port '+serverPort));
-  server.on('connection', newConnectionHandler);
-  server.on('error', (e)=>(e.code === 'EADDRINUSE' && server.listen(++serverPort)));
-  server.listen(serverPort);
+  console.log('creating server');
+  jot.createServer({port: serverPort})
+  .on('listening', ()=>log('started listening @ port '+serverPort))
+  .on('connection', newConnectionHandler)
+  // .on('error', (e)=>(e.code === 'EADDRINUSE' && server.listen(++serverPort)))
+  .listen(serverPort);
 } else {
-  const server = jot.connect({port: serverPort, host: args.host});
-  server.on('error', log);
-  clients.push(server);
-  server.on('data', function(data) {
+  console.log('connecting to server @'+args.host+':'+serverPort);
+  clients.push(jot.connect({port: serverPort, host: args.host})
+  // .on('error', log)
+  .on('data', function(data) {
     console.log(`[${serverPort}]message from server:`, String(data).substr(0, 100));
     if (data.event && data.path) executeOrder(data);
-  });
+  }));
 }
