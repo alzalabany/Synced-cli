@@ -118,14 +118,6 @@ function newConnectionHandler(socket) {
   });
 }
 
-function handleError(e) {
-  console.log('error happened server is listening:' + server.listening);
-  if (e.code === 'EADDRINUSE') {
-    // port already in use;
-    server.listen(++serverPort);
-  }
-}
-
 /**
  *  i will broadcast changes to eveery socket in clients array
  * @param {*string} event
@@ -155,18 +147,18 @@ watcher
     }
   });
 
-if (args.host) {
+if (!args.host) {
   const server = jot.createServer({port: serverPort});
   server.on('listening', ()=>log('started listening @ port '+serverPort));
   server.on('connection', newConnectionHandler);
-  server.on('error', handleError);
+  server.on('error', (e)=>(e.code === 'EADDRINUSE' && server.listen(++serverPort)));
   server.listen(serverPort);
 } else {
-  const server = jot.connect({port: serverPort, args.host});
-  server.on('error', handleError);
+  const server = jot.connect({port: serverPort, host: args.host});
+  server.on('error', log);
   clients.push(server);
   server.on('data', function(data) {
     console.log(`[${serverPort}]message from server:`, String(data).substr(0, 100));
-    if(data.event && data.path) executeOrder(data);
+    if (data.event && data.path) executeOrder(data);
   });
 }
