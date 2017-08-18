@@ -14,7 +14,7 @@ const log = console.log.bind(console);
 let serverPort = args.port || 5050; // default port
 let ready = false; // used by server to wait for file watcher to start
 const clients = []; // sockets to propagate change to.
-
+let lastMd5=null;
 // you must have a .gitignore file or this will fail...
 // i leave it to enforce adding node_modules to .gitignore :D !!
 const ignoreFile = path.normalize('./.gitignore');
@@ -83,6 +83,7 @@ function executeOrder(data) {
         const current = md5File.sync(url);
         // crypto.createHash('md5').update(file).digest("hex");
         if (md5 !== current) {
+          lastMd5 = md5;
           fs.writeFileSync(url, file);
           log('updated');
         } else {
@@ -98,9 +99,11 @@ function executeOrder(data) {
         case 'update':
         case 'updated':
         case 'change':
-          fs.writeFileSync(url, file);
-          log('updated');
-          return;
+          if (file.length) {
+            lastMd5 = md5;
+            fs.writeFileSync(url, file);
+            return log('updated');
+          }
         default:
           log('unkown event on an unkown file !'+event, file);
           break;
@@ -130,6 +133,7 @@ function newConnectionHandler(socket) {
  * @param {string} file file content
  */
 function broadcast(event, md5, path, file) {
+  if (md5===lastMd5) return log('skipping trying to recircule update for '+md5);
   log(`###broadcasting to ${clients.length} clients### checksum:${md5}`);
   clients.map((socket)=>socket.write({event, md5, path, file}));
 }
